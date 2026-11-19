@@ -45,7 +45,12 @@ from .services import active_rule, alert, assign_job, log, offer_job, ranked_can
 
 def paging(request):
     page = serializers.IntegerField(min_value=1, max_value=100000).run_validation(request.query_params.get("page", 1))
-    return page, 20
+    try:
+        raw_size = int(request.query_params.get("page_size") or request.query_params.get("size") or 20)
+        size = max(1, min(1000, raw_size))
+    except (TypeError, ValueError):
+        size = 20
+    return page, size
 
 
 def paged(request, queryset, serializer):
