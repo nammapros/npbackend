@@ -270,7 +270,11 @@ class PasswordLoginView(APIView):
         if (cache.get(lock_key) or 0) >= PASSWORD_MAX_FAILURES:
             raise TooManyRequests("Too many wrong attempts. Try again in 15 minutes.")
         User = get_user_model()
-        candidate = User.objects.filter(phone_e164=identifier).first() or User.objects.filter(username=identifier).first()
+        candidate = (
+            User.objects.filter(phone_e164=identifier).first()
+            or User.objects.filter(username__iexact=identifier).first()
+            or User.objects.filter(email__iexact=identifier).first()
+        )
         user = authenticate(request._request, username=candidate.username, password=password) if candidate else None
         if not user or not user.is_active or not is_staff_account(user):
             failures = (cache.get(lock_key) or 0) + 1
