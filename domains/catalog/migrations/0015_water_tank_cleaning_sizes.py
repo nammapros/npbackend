@@ -29,8 +29,8 @@ GROUPS = [
         "summary": "Concrete overhead tank cleaning with intensive scrubbing and sludge removal. Pick your tank size.",
         "sort_order": 2,
         "sizes": [
-            ("overhead-concrete-water-tank-cleaning-up-to-1000-litres", "Up to 1000 Litres", 119900, 120),
-            ("overhead-concrete-water-tank-cleaning-1000-to-3000-litres", "1000 to 3000 Litres", 149900, 150),
+            ("overhead-concrete-water-tank-cleaning-up-to-1000-l", "Up to 1000 Litres", 119900, 120),
+            ("overhead-concrete-water-tank-cleaning-1000-to-3000", "1000 to 3000 Litres", 149900, 150),
         ],
     },
     {
@@ -60,6 +60,17 @@ def group_water_tank_sizes(apps, schema_editor):
     Category = apps.get_model("catalog", "Category")
     ServicePackage = apps.get_model("catalog", "ServicePackage")
     ServiceCoverage = apps.get_model("locations", "ServiceCoverage")
+
+    # The production monorepo migration may already have grouped these rows.
+    # Avoid adding a second set of unpriced size packages on a later deploy from
+    # this standalone backend repository.
+    source_slugs = [size[0] for group in GROUPS for size in group["sizes"]]
+    grouped_slugs = [group["slug"] for group in GROUPS]
+    if (
+        not Service.objects.filter(slug__in=source_slugs, is_active=True).exists()
+        and all(ServicePackage.objects.filter(service__slug=slug).exists() for slug in grouped_slugs)
+    ):
+        return
 
     category = Category.objects.filter(slug="water-tank-cleaning").first()
 
